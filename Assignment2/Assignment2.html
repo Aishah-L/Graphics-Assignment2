@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+
+		<title>Graphics Assignment 2</title>
+		<style>
+			body { margin: 0; 
+			     }
+
+			canvas {width: 100;
+                    height: 100%;}
+		</style>
+
+        <script src="lib/three.js"></script>
+
+	</head>
+	<body>
+
+        <div id="popup_wrapper" style ="display: none;">
+            <div class="options">
+                <button id ="rotate_Button"> Rotate </button>
+                <button id = "change_Direction"> Change Direction </button>
+                <div><button id="day_night"> Day/Night </button></div>
+                <div>Rotation Speed: <input id="rotation_Speed" type="range", min="0.01" max="0.05" step="0.01" value="0.01"></div>
+                <div>Zoom: <input id="Zoom" type="range", min="0.15" max="3" step="0.1" value ="1"></div>
+                <button onclick="window.close()">Terminate program</button>
+
+            </div>
+        </div>
+
+        <script>
+            var rotate = false;
+            var changeDirection = false;
+            var night = false;
+            var rotationSpeed=0.01;
+            var zoomAmount =1;
+
+            document.getElementById("rotate_Button").onclick = function(){rotate = !rotate;};
+            document.getElementById("change_Direction").onclick = function(){changeDirection = !changeDirection;};
+            document.getElementById("day_night").onclick = function(){night = !night;};
+            document.getElementById("rotation_Speed").onchange = function(event){rotationSpeed = parseFloat(event.target.value);};
+            document.getElementById("Zoom").onchange = function(event){zoomAmount = event.target.value;};
+
+        </script>
+
+	    <script>
+
+
+            //Create a scene
+            var scene = new THREE.Scene();
+
+
+            //Create a perspective camera
+            var width  = window.innerWidth,
+                height = window.innerHeight;
+            var camera = new THREE.PerspectiveCamera(80, width/height, 0.1, 1000 );
+
+
+            //Create a renderer
+            var renderer = new THREE.WebGLRenderer({antialias:true});
+
+            //Configure renderer size
+            renderer.setSize( window.innerWidth, window.innerHeight );
+
+            //Append Renderer to DOM
+            document.body.appendChild( renderer.domElement );
+
+
+            //Create Plane
+            var texture = new THREE.TextureLoader().load('textures/grass.jpg');
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            var geometry = new THREE.PlaneBufferGeometry(130,130,20,20);
+            var material = new THREE.MeshLambertMaterial({map:texture});
+            material.side = THREE.DoubleSide;
+            var plane = new THREE.Mesh(geometry, material);
+            plane.receiveShadow = true;
+
+            plane.rotation.x = -0.5 * Math.PI;
+            plane.position.x = 15;
+            plane.position.y = -4.04; 
+
+            
+            //Create Light source
+            var ambiColor = "#0c0c0c";
+            var ambientLight = new THREE.AmbientLight(ambiColor);
+            scene.add(ambientLight);
+
+            //Directional light
+            var ambiColor = "#0c0c0c";
+            var ambientLight = new THREE.AmbientLight(ambiColor);
+
+            var light = new THREE.DirectionalLight("white", 1.5);
+            light.position.set(27, 100, 20);
+
+            light.shadowCameraNear = 2;
+            light.shadowCameraFar = 200;
+            light.shadowCameraLeft = -50;
+            light.shadowCameraRight = 50;
+            light.shadowCameraTop = 50;
+            light.shadowCameraBottom = -50;
+
+
+            light.castShadow = true;
+            light.target = plane;
+            light.shadowCameraVisible = true;
+
+            //Create sun
+            texture = new THREE.TextureLoader().load('textures/sun.jpg');
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            geometry = new THREE.SphereBufferGeometry(10,24,24);
+            material = new THREE.MeshLambertMaterial({
+                map:texture,
+                emissive: "#F9DE77",
+                emissiveMap: texture});
+            var sun = new THREE.Mesh(geometry, material);
+            //sun.position.set(27, 40, -25);
+
+            //Create Moon
+            geometry = new THREE.SphereBufferGeometry(10,24,24);
+            material = new THREE.MeshLambertMaterial({
+                color:"#FFFFFF",
+                emissive: "#FFFFFF"});
+            var moon = new THREE.Mesh(geometry, material);
+            moon.position.set(27, 70, -25);
+
+            //Create Stars
+            geometry = new THREE.SphereBufferGeometry(0.7 , 15, 15);
+            material = new THREE.MeshLambertMaterial({
+                color: "#FFFFFF",
+                emissive: "#FFFFFF"});
+
+            var star = [];
+            for (let i = 0; i < 80; i++) {
+                star[i] = new THREE.Mesh(geometry, material);
+                star[i].position.x = Math.floor(Math.random() * (80 - -80)+ -80);
+                star[i].position.y = Math.floor(Math.random() * (85 - 80)+80);
+                star[i].position.z = Math.floor(Math.random() * (50 - -50)+ -50);
+            }
+
+
+            //Create Barn
+            //Barn
+            texture = new THREE.TextureLoader().load('textures/barn.jpg');
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            geometry = new THREE.BoxGeometry(15, 20, 30);
+            material = new THREE.MeshLambertMaterial( {map: texture});
+            var barn = new THREE.Mesh(geometry, material);
+            barn.castShadow=true;
+
+            //Barn Roof
+            geometry = new THREE.Geometry();
+            geometry.vertices = [
+                new THREE.Vector3(10, 0, 0),
+                new THREE.Vector3(10, 0, 30),
+                new THREE.Vector3(-10, 0, 30),
+                new THREE.Vector3(-10, 0, 0),
+                new THREE.Vector3(0, 10, 0),
+                new THREE.Vector3(0, 10, 30),
+
+            ];
+
+
+            geometry.faces = [
+                new THREE.Face3(0, 1, 2),
+                new THREE.Face3(3, 4, 0),
+                new THREE.Face3(0, 4, 1),
+                new THREE.Face3(1, 4, 5),
+                new THREE.Face3(1, 5, 2),
+                new THREE.Face3(2, 3, 0),
+                new THREE.Face3(2, 5, 3),
+                new THREE.Face3(3, 5, 4)
+
+            ];
+            geometry.computeFaceNormals();
+            geometry.computeVertexNormals();
+            material = new THREE.MeshLambertMaterial({color: "#EAE7DA"});
+            var barn_roof = new THREE.Mesh(geometry, material);
+            barn_roof.castShadow=true;
+
+
+            //Barn position
+            barn.position.set(10, 0, 0);
+            barn_roof.position.set(10, 10, -15);
+
+
+            //Create Trees
+            //Tree trunk
+            texture = new THREE.TextureLoader().load('textures/bark.jpg');
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            geometry = new THREE.CylinderGeometry(1,1,12,16,1);
+            material = new THREE.MeshLambertMaterial( {map: texture});
+            var tree_trunk= new THREE.Mesh(geometry, material);
+            tree_trunk.castShadow=true;
+
+            //Leaves
+            geometry = new THREE.ConeGeometry(5,15,16,3);
+            material = new THREE.MeshLambertMaterial({color:"#0D6F23"});
+            var tree_leaves = new THREE.Mesh(geometry, material);
+            tree_leaves.castShadow=true;
+
+            //Clone Trees
+            var trunk2 = tree_trunk.clone();
+            var leaves2 = tree_leaves.clone();
+
+            var trunk3= tree_trunk.clone();
+            var leaves3 = tree_leaves.clone();
+
+            //Trees Position
+            tree_trunk.position.set(60,2,30);
+            tree_leaves.position.set(60,12,30);
+
+            trunk2.position.set(53, 2, 25);
+            leaves2.position.set(53, 12,25);
+
+            trunk3.position.set(55, 2, 15);
+            leaves3.position.set(55, 12,15);
+
+
+            //Create water tank
+            texture = new THREE.TextureLoader().load('textures/watertank.jpg');
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            geometry = new THREE.CylinderGeometry(7, 7,15,24, true);
+            material = new THREE.MeshLambertMaterial( {map: texture});
+            var water_tank = new THREE.Mesh( geometry, material);
+            water_tank.castShadow=true;
+
+            //Water tank position
+            water_tank.position.set(37, 0, 0);
+
+            //Create Igloo
+            texture = new THREE.TextureLoader().load('textures/igloo.jpg');
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            geometry = new THREE.SphereBufferGeometry(10, 15, 40, 45, 2* Math.PI, 0 ,0.5  * Math.PI);
+            material = new THREE.MeshLambertMaterial( {map: texture});
+            var igloo = new THREE.Mesh( geometry, material);
+            igloo.castShadow=true;
+
+            //Igloo position 
+            igloo.position.set(-23,-5, -36);
+
+            //Create garden lights
+            geometry = new THREE.CylinderGeometry(3, 3, 0.1, 30);
+            material = new THREE.MeshPhongMaterial();
+            var garden_light1 = new THREE.Mesh(geometry,material);
+            var garden_light2 = new THREE.Mesh(geometry, material);
+            var garden_light3 = new THREE.Mesh(geometry, material);
+
+            garden_light1.position.set(-25, -4, 45);
+            garden_light2.position.set(30, -4, -40);
+            garden_light3.position.set(50, -4, 45);
+
+            //Create Spotlight
+            var spotLight1 = new THREE.SpotLight(0xffffff);
+            var spotLight2 = new THREE.SpotLight(0xffffff);
+            var spotLight3 = new THREE.SpotLight(0xffffff);
+
+            spotLight1.position.set(-25, -2, 45);
+            spotLight2.position.set(30, -2, -40);
+            spotLight3.position.set(50,-2, 45);
+
+
+            //Add to Scene
+            scene.add(plane);
+
+            scene.add(light);
+            scene.add(ambientLight);
+            light.add(sun);
+
+            scene.add(barn);
+            scene.add(barn_roof);
+
+            scene.add(igloo);
+
+            scene.add(water_tank);
+
+            scene.add(tree_trunk);
+            scene.add(tree_leaves);
+
+            scene.add(trunk2);
+            scene.add(leaves2);
+
+            scene.add(trunk3);
+            scene.add(leaves3);
+
+            camera.position.z = 130;
+            camera.position.y = 20;
+            camera.position.x = 10;
+
+
+            const popup_wrapperE1 = document.getElementById('popup_wrapper');
+
+            popup_wrapperE1.onclick = function() {
+                if (event.target == this){
+                    this.style.display='none';
+                }
+            }
+
+            document.oncontextmenu = function (event){
+                return false;
+            }
+
+            window.addEventListener('mousedown', function(event){
+                if(event.button === 2){
+                    popup_wrapperE1.style.display = '';
+                }
+            })
+
+            // Render Loop
+            var render = function () {
+
+            //Control rotation
+            if(rotate){
+                if(changeDirection){
+                    scene.rotation.y -= rotationSpeed;
+                }
+                else{
+                    scene.rotation.y += rotationSpeed;
+                }
+            };
+
+            if (night){
+                    renderer.setClearColor("black"); 
+                    scene.remove(light);
+                    scene.add(moon);
+                    scene.add(garden_light1);
+                    scene.add(garden_light2);
+                    scene.add(garden_light3);
+                    scene.add(spotLight1);
+                    scene.add(spotLight2);
+                    scene.add(spotLight3);                
+                    for (let i = 0; i < 80; i++) {
+                            scene.add(star[i]);
+                        }
+
+            }
+            else {
+                    renderer.setClearColor("#73ACF6");
+                    scene.add(light);
+                    scene.remove(moon);
+                    scene.remove(garden_light1);
+                    scene.remove(garden_light2);
+                    scene.remove(garden_light3);
+                    scene.remove(spotLight1);
+                    scene.remove(spotLight2);
+                    scene.remove(spotLight3);
+
+                    for (let i = 0; i < 80; i++) {
+                            scene.remove(star[i]);
+                        }
+
+            }
+        
+
+
+            requestAnimationFrame( render );
+
+            camera.zoom = zoomAmount;
+            camera.updateProjectionMatrix(); 
+                
+            //Render the scene
+            renderer.render( scene, camera );
+            };
+
+            render();
+
+	    </script>
+	</body>
+</html>
